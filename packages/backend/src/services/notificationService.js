@@ -101,7 +101,17 @@ async function simulateNotification(data) {
     }
 
     // Enviar notificação real via Firebase Admin
-    const result = await firebaseAdminService.sendToMultipleTokens(fcmTokens, notification_payload);
+    const notificationData = {
+      ...notification_payload,
+      data: {
+        user_id,
+        account_id,
+        ...notification_payload.data
+      }
+    };
+    
+    console.log('📤 Enviando notificação com dados:', notificationData);
+    const result = await firebaseAdminService.sendToMultipleTokens(fcmTokens, notificationData);
     
     console.log('✅ Resultado do envio:', result);
     

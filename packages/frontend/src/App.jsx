@@ -44,7 +44,7 @@ function App() {
       if (savedSession) {
         setSession(savedSession);
         // Notificar SW sobre a sessão
-        notifyServiceWorker('SESSION_UPDATE', savedSession);
+        await notifyServiceWorker('SESSION_UPDATE', savedSession);
       }
     } catch (error) {
       console.error('❌ Erro ao carregar estado inicial:', error);
@@ -59,9 +59,21 @@ function App() {
     setTimeout(() => setNotification(null), 5000);
   };
 
-  const notifyServiceWorker = (type, data) => {
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({ type, data });
+  const notifyServiceWorker = async (type, data) => {
+    try {
+      if ('serviceWorker' in navigator) {
+        // Aguardar o service worker estar pronto
+        const registration = await navigator.serviceWorker.ready;
+        
+        if (registration.active) {
+          console.log(`📤 Enviando para SW: ${type}`, data);
+          registration.active.postMessage({ type, data });
+        } else {
+          console.warn('⚠️ Service Worker não está ativo');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao comunicar com Service Worker:', error);
     }
   };
 
@@ -87,7 +99,7 @@ function App() {
       setSession(newSession);
 
       // Notificar SW
-      notifyServiceWorker('SESSION_UPDATE', newSession);
+      await notifyServiceWorker('SESSION_UPDATE', newSession);
 
       showNotification('success', `Logado como Usuário ${userId} (Conta ${accountId})`);
     } catch (error) {
@@ -109,7 +121,7 @@ function App() {
       setSession(newSession);
 
       // Notificar SW
-      notifyServiceWorker('SESSION_UPDATE', newSession);
+      await notifyServiceWorker('SESSION_UPDATE', newSession);
 
       showNotification('success', `Perfil alterado para Conta ${newAccountId}`);
     } catch (error) {
@@ -143,7 +155,7 @@ function App() {
       setFcmToken(null);
 
       // Notificar SW
-      notifyServiceWorker('LOGOUT');
+      await notifyServiceWorker('LOGOUT');
 
       showNotification('success', 'Logout realizado com sucesso');
     } catch (error) {

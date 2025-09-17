@@ -115,25 +115,36 @@ async function clearCurrentSession() {
 
 // Verificar se deve exibir a notificação
 function shouldShowNotification(payload) {
+  console.log('🔍 SW: Verificando notificação:', {
+    currentSession,
+    payloadData: payload.data,
+    payloadNotification: payload.notification
+  });
+
+  // Se não há sessão ativa, descartar todas as notificações
   if (!currentSession) {
     console.log('🚫 SW: Nenhuma sessão ativa, descartando notificação');
     return false;
   }
 
+  // Verificar se há dados customizados (user_id, account_id)
   const { user_id, account_id } = payload.data || {};
   
   if (!user_id || !account_id) {
-    console.log('🚫 SW: Payload inválido, descartando notificação');
+    console.log('🚫 SW: Payload inválido (faltam user_id ou account_id), descartando notificação');
     return false;
   }
 
+  // Verificar correspondência com a sessão atual
   const shouldShow = 
     user_id === currentSession.user_id && 
     account_id === currentSession.account_id;
 
-  console.log('🔍 SW: Verificando notificação:', {
+  console.log('🔍 SW: Verificando correspondência:', {
     payload: { user_id, account_id },
     currentSession,
+    userMatch: user_id === currentSession.user_id,
+    accountMatch: account_id === currentSession.account_id,
     shouldShow
   });
 
@@ -165,14 +176,15 @@ self.addEventListener('push', (event) => {
     console.log('📋 SW: Payload da notificação:', payload);
 
     if (shouldShowNotification(payload)) {
-      const notificationData = payload.notification_payload || {};
+      // Usar dados do Firebase ou fallback para dados customizados
+      const notificationData = payload.notification || payload.notification_payload || {};
       
       const notificationOptions = {
         body: notificationData.body || 'Nova notificação',
         icon: '/vite.svg',
         badge: '/vite.svg',
-        tag: `notification-${payload.user_id}-${payload.account_id}`,
-        data: payload.data,
+        tag: 'firebase-notification',
+        data: payload.data || {},
         actions: [
           {
             action: 'view',
@@ -224,11 +236,31 @@ self.addEventListener('message', (event) => {
 
   switch (type) {
     case 'SESSION_UPDATE':
-      saveCurrentSession(data);
+      console.log('🔄 SW: Atualizando sessão:', data);
+      // Atualizar sessão imediatamente na memória
+      currentSession = data;
+      console.log('✅ SW: Sessão atualizada na memória:', currentSession);
+      
+      // Salvar no IndexedDB
+      saveCurrentSession(data).then(() => {
+        console.log('✅ SW: Sessão salva no IndexedDB');
+      }).catch(error => {
+        console.error('❌ SW: Erro ao salvar sessão:', error);
+      });
       break;
     
     case 'LOGOUT':
-      clearCurrentSession();
+      console.log('🚪 SW: Fazendo logout');
+      // Limpar sessão imediatamente da memória
+      currentSession = null;
+      console.log('✅ SW: Sessão removida da memória');
+      
+      // Limpar do IndexedDB
+      clearCurrentSession().then(() => {
+        console.log('✅ SW: Logout realizado com sucesso');
+      }).catch(error => {
+        console.error('❌ SW: Erro ao limpar sessão:', error);
+      });
       break;
     
     default:
@@ -237,4 +269,13 @@ self.addEventListener('message', (event) => {
 });
 
 // Carregar sessão na inicialização
-loadCurrentSession();
+loadCurrentSession().then((session) => {
+  if (session) {
+    currentSession = session;
+    console.log('✅ SW: Sessão inicial carregada:', currentSession);
+  } else {
+    console.log('ℹ️ SW: Nenhuma sessão inicial encontrada');
+  }
+}).catch(error => {
+  console.error('❌ SW: Erro ao carregar sessão inicial:', error);
+});
