@@ -4,3 +4,4 @@ packages/backend/build
 packages/backend/coverage
 packages/backend/logs
 packages/backend/tmp
+node_modules
