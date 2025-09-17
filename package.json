@@ -1,0 +1,18 @@
+{
+  "name": "push-notifications-poc",
+  "version": "1.0.0",
+  "description": "PoC de Push Notifications com Node.js + Express + React",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:backend": "cd packages/backend && npm run dev",
+    "start:backend": "cd packages/backend && npm start",
+    "test:backend": "cd packages/backend && ./test-api.sh",
+    "install:all": "npm install && cd packages/backend && npm install"
+  },
+  "keywords": ["push-notifications", "fcm", "express", "react", "poc"],
+  "author": "",
+  "license": "ISC"
+}
