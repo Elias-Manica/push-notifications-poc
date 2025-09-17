@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 const notificationService = require('../services/notificationService');
+const firebaseAdminService = require('../services/firebaseAdmin');
 
 /**
  * POST /api/v1/events/enviar
@@ -52,6 +53,29 @@ router.post('/enviar', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Erro no endpoint POST /enviar:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
+/**
+ * GET /api/v1/events/status
+ * Retorna status do Firebase Admin
+ */
+router.get('/status', (req, res) => {
+  try {
+    const status = firebaseAdminService.getStatus();
+    res.status(200).json({
+      ok: true,
+      firebase: status,
+      message: status.initialized 
+        ? (status.mock ? 'Firebase Admin em modo MOCK' : 'Firebase Admin configurado')
+        : 'Firebase Admin não inicializado'
+    });
+  } catch (error) {
+    console.error('❌ Erro no endpoint GET /status:', error);
     res.status(500).json({
       ok: false,
       message: 'Erro interno do servidor'

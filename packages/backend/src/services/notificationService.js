@@ -6,6 +6,7 @@
  */
 
 const mockDb = require('../models/mockDb');
+const firebaseAdminService = require('./firebaseAdmin');
 
 function validateTokenData(data) {
   const errors = [];
@@ -88,13 +89,33 @@ async function simulateNotification(data) {
       console.log(`📭 Nenhum token encontrado para user_id: ${user_id} com consentimento 'granted'`);
       return { success: true, targets: [], simulatedResult: 'no_targets', message: 'Nenhum token encontrado com consentimento para notificações' };
     }
+    
     const fcmTokens = userTokens.map(item => item.fcmToken);
-    console.log(`📤 Simulando envio de notificação para user_id: ${user_id}`);
+    console.log(`📤 Enviando notificação para user_id: ${user_id}`);
     console.log(`📱 Payload:`, notification_payload);
-    console.log(`🎯 Tokens FCM que receberiam:`, fcmTokens);
-    return { success: true, targets: fcmTokens, simulatedResult: 'success', message: `Notificação simulada enviada para ${fcmTokens.length} dispositivo(s)` };
+    console.log(`🎯 Tokens FCM que receberão:`, fcmTokens);
+
+    // Inicializar Firebase Admin se não estiver inicializado
+    if (!firebaseAdminService.initialized) {
+      firebaseAdminService.initializeMock();
+    }
+
+    // Enviar notificação real via Firebase Admin
+    const result = await firebaseAdminService.sendToMultipleTokens(fcmTokens, notification_payload);
+    
+    console.log('✅ Resultado do envio:', result);
+    
+    return { 
+      success: true, 
+      targets: fcmTokens, 
+      simulatedResult: result.mock ? 'simulated' : 'sent',
+      message: result.mock 
+        ? `Notificação simulada enviada para ${result.successCount} dispositivo(s)`
+        : `Notificação enviada para ${result.successCount} dispositivo(s) (${result.failureCount} falharam)`,
+      details: result
+    };
   } catch (error) {
-    console.error('❌ Erro ao simular notificação:', error);
+    console.error('❌ Erro ao enviar notificação:', error);
     return { success: false, message: 'Erro interno do servidor' };
   }
 }

@@ -4,4 +4,21 @@ packages/backend/build
 packages/backend/coverage
 packages/backend/logs
 packages/backend/tmp
+
+# Frontend
+packages/frontend/node_modules
+packages/frontend/dist
+packages/frontend/build
+
+# Environment variables (PRIVATE)
+.env
+.env.local
+.env.*.local
+packages/frontend/.env
+packages/frontend/.env.local
+packages/frontend/.env.*.local
+
+# Firebase private keys
+**/firebase-adminsdk-*.json
+**/service-account-*.json
 node_modules

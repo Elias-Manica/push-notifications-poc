@@ -54,7 +54,8 @@ app.get('/', (req, res) => {
       listTokens: 'GET /api/v1/notifications/tokens',
       removeToken: 'DELETE /api/v1/notifications/tokens/:device_id',
       tokenCount: 'GET /api/v1/notifications/tokens/count',
-      sendNotification: 'POST /api/v1/events/enviar'
+      sendNotification: 'POST /api/v1/events/enviar',
+      firebaseStatus: 'GET /api/v1/events/status'
     },
     examples: {
       registerToken: {

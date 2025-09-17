@@ -7,7 +7,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
-// Configuração do Firebase (substitua pelos seus valores reais)
+// Configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAbw3L4y-w5VwNEuinQ4yoZMt6lBNngAKQ",
   authDomain: "push-notifications-poc-9bb04.firebaseapp.com",
@@ -39,7 +39,7 @@ class FirebaseService {
 
       // Obter token FCM
       const token = await getToken(this.messaging, {
-        vapidKey: 'demo-vapid-key' // Substitua pela sua chave VAPID real
+        vapidKey: 'BIUh-MR009qIFw5_emosz52IKig3jGWw2AjdNcmyYKEKcINnMWOiqmoDqiACMI0SywY9ta3gW-rfd3f3V7t2-9o' // Substitua pela sua chave VAPID real
       });
 
       if (!token) {
