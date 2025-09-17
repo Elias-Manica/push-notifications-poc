@@ -4,8 +4,3 @@ packages/backend/build
 packages/backend/coverage
 packages/backend/logs
 packages/backend/tmp
-packages/backend/public
-packages/backend/src
-packages/backend/test
-packages/backend/test-results
-packages/backend/test-results
