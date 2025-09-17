@@ -39,6 +39,11 @@ class ApiService {
       const result = await response.json();
       
       if (!response.ok) {
+        // Se o device não foi encontrado, não é um erro crítico
+        if (response.status === 404 && result.message === 'Device not found') {
+          console.log('ℹ️ Token já foi removido ou não existe');
+          return { ok: true, message: 'Token já removido', alreadyRemoved: true };
+        }
         throw new Error(result.message || 'Erro ao remover token');
       }
 

@@ -124,9 +124,17 @@ function App() {
     try {
       setLoading(true);
 
-      // Remover token do backend
+      // Remover token do backend (se existir)
       if (deviceId) {
-        await apiService.removeToken(deviceId);
+        try {
+          const result = await apiService.removeToken(deviceId);
+          if (result.alreadyRemoved) {
+            console.log('ℹ️ Token já estava removido');
+          }
+        } catch (error) {
+          // Se falhar ao remover token, continua o logout mesmo assim
+          console.warn('⚠️ Não foi possível remover token do backend:', error.message);
+        }
       }
 
       // Limpar sessão

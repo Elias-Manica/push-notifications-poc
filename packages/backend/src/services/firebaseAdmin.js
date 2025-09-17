@@ -212,7 +212,7 @@ class FirebaseAdminService {
         }
       };
 
-      const response = await this.messaging.sendMulticast(message);
+      const response = await this.messaging.sendEachForMulticast(message);
       
       console.log('✅ Notificações enviadas:', {
         successCount: response.successCount,
