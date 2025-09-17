@@ -10,9 +10,23 @@
     "dev:backend": "cd packages/backend && npm run dev",
     "start:backend": "cd packages/backend && npm start",
     "test:backend": "cd packages/backend && ./test-api.sh",
-    "install:all": "npm install && cd packages/backend && npm install"
+    "dev:frontend": "cd packages/frontend && npm run dev",
+    "build:frontend": "cd packages/frontend && npm run build",
+    "preview:frontend": "cd packages/frontend && npm run preview",
+    "install:all": "npm install && cd packages/backend && npm install && cd ../frontend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "npm run build:frontend"
   },
-  "keywords": ["push-notifications", "fcm", "express", "react", "poc"],
+  "keywords": [
+    "push-notifications",
+    "fcm",
+    "express",
+    "react",
+    "poc"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
 }
