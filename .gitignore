@@ -20,5 +20,6 @@ packages/frontend/.env.*.local
 
 # Firebase private keys
 **/firebase-adminsdk-*.json
+**/firebase-adminsdk.json
 **/service-account-*.json
 node_modules

@@ -53,6 +53,18 @@ class FirebaseAdminService {
         return;
       }
 
+      // Tentar carregar credenciais reais primeiro
+      const serviceAccountPath = require('path').join(__dirname, '../../firebase-adminsdk.json');
+      
+      try {
+        const serviceAccount = require(serviceAccountPath);
+        console.log('🔑 Credenciais reais encontradas, inicializando Firebase Admin...');
+        this.initialize(serviceAccount);
+        return;
+      } catch (error) {
+        console.log('🔧 Credenciais reais não encontradas, usando modo MOCK');
+      }
+
       // Em modo mock, não inicializar o Firebase Admin real
       this.initialized = true;
       this.mockMode = true;
