@@ -51,6 +51,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: 'GET /health',
       registerToken: 'POST /api/v1/notifications/tokens',
+      listTokens: 'GET /api/v1/notifications/tokens',
       removeToken: 'DELETE /api/v1/notifications/tokens/:device_id',
       tokenCount: 'GET /api/v1/notifications/tokens/count',
       sendNotification: 'POST /api/v1/events/enviar'

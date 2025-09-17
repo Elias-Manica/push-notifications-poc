@@ -1,190 +1,109 @@
 /**
  * Serviço de Notificações
  * 
- * Contém a lógica de negócio para gerenciar tokens FCM e simular envios
+ * Funções puras para gerenciar tokens FCM e simular envios
  * TODO: Integrar com Firebase Admin SDK para envios reais
  */
 
 const mockDb = require('../models/mockDb');
 
-class NotificationService {
-  /**
-   * Valida os dados de entrada para registro de token
-   * @param {object} data 
-   * @returns {object} { isValid: boolean, errors: string[] }
-   */
-  validateTokenData(data) {
-    const errors = [];
-    
-    if (!data.fcm_token || typeof data.fcm_token !== 'string') {
-      errors.push('fcm_token é obrigatório e deve ser uma string');
-    }
-    
-    if (!data.device_id || typeof data.device_id !== 'string') {
-      errors.push('device_id é obrigatório e deve ser uma string');
-    }
-    
-    if (!data.user_id || typeof data.user_id !== 'string') {
-      errors.push('user_id é obrigatório e deve ser uma string');
-    }
-    
-    const validConsentStatuses = ['granted', 'denied', 'default'];
-    if (!data.notification_consent_status || !validConsentStatuses.includes(data.notification_consent_status)) {
-      errors.push('notification_consent_status é obrigatório e deve ser: granted, denied ou default');
-    }
-    
-    return {
-      isValid: errors.length === 0,
-      errors
-    };
+function validateTokenData(data) {
+  const errors = [];
+  if (!data.fcm_token || typeof data.fcm_token !== 'string') {
+    errors.push('fcm_token é obrigatório e deve ser uma string');
   }
-
-  /**
-   * Registra ou atualiza um token FCM
-   * @param {object} data 
-   * @returns {object} { success: boolean, action?: string, record?: object, errors?: string[] }
-   */
-  async registerToken(data) {
-    const validation = this.validateTokenData(data);
-    
-    if (!validation.isValid) {
-      return {
-        success: false,
-        errors: validation.errors
-      };
-    }
-
-    try {
-      const result = mockDb.upsert(data.fcm_token, {
-        device_id: data.device_id,
-        user_id: data.user_id,
-        notification_consent_status: data.notification_consent_status
-      });
-
-      return {
-        success: true,
-        action: result.action,
-        record: result.record
-      };
-    } catch (error) {
-      console.error('❌ Erro ao registrar token:', error);
-      return {
-        success: false,
-        errors: ['Erro interno do servidor']
-      };
-    }
+  if (!data.device_id || typeof data.device_id !== 'string') {
+    errors.push('device_id é obrigatório e deve ser uma string');
   }
-
-  /**
-   * Remove um token pelo device_id
-   * @param {string} deviceId 
-   * @returns {object} { success: boolean, removed?: boolean, removedDeviceId?: string, message?: string }
-   */
-  async removeTokenByDeviceId(deviceId) {
-    try {
-      const result = mockDb.deleteByDeviceId(deviceId);
-      
-      if (result) {
-        return {
-          success: true,
-          removed: true,
-          removedDeviceId: deviceId
-        };
-      } else {
-        return {
-          success: false,
-          message: 'Device not found'
-        };
-      }
-    } catch (error) {
-      console.error('❌ Erro ao remover token:', error);
-      return {
-        success: false,
-        message: 'Erro interno do servidor'
-      };
-    }
+  if (!data.user_id || typeof data.user_id !== 'string') {
+    errors.push('user_id é obrigatório e deve ser uma string');
   }
-
-  /**
-   * Retorna a quantidade de tokens registrados
-   * @returns {object} { success: boolean, count?: number }
-   */
-  async getTokenCount() {
-    try {
-      const count = mockDb.count();
-      return {
-        success: true,
-        count
-      };
-    } catch (error) {
-      console.error('❌ Erro ao contar tokens:', error);
-      return {
-        success: false,
-        message: 'Erro interno do servidor'
-      };
-    }
+  const validConsentStatuses = ['granted', 'denied', 'default'];
+  if (!data.notification_consent_status || !validConsentStatuses.includes(data.notification_consent_status)) {
+    errors.push('notification_consent_status é obrigatório e deve ser: granted, denied ou default');
   }
+  return { isValid: errors.length === 0, errors };
+}
 
-  /**
-   * Simula envio de notificação para um usuário
-   * @param {object} data 
-   * @returns {object} { success: boolean, targets?: string[], simulatedResult?: string, message?: string }
-   */
-  async simulateNotification(data) {
-    const { user_id, account_id, notification_payload } = data;
-    
-    if (!user_id) {
-      return {
-        success: false,
-        message: 'user_id é obrigatório'
-      };
-    }
-
-    try {
-      // Buscar tokens do usuário com consentimento 'granted'
-      const userTokens = mockDb.findByUserIdAndConsent(user_id, 'granted');
-      
-      if (userTokens.length === 0) {
-        console.log(`📭 Nenhum token encontrado para user_id: ${user_id} com consentimento 'granted'`);
-        return {
-          success: true,
-          targets: [],
-          simulatedResult: 'no_targets',
-          message: 'Nenhum token encontrado com consentimento para notificações'
-        };
-      }
-
-      // Simular envio
-      const fcmTokens = userTokens.map(item => item.fcmToken);
-      
-      console.log(`📤 Simulando envio de notificação para user_id: ${user_id}`);
-      console.log(`📱 Payload:`, notification_payload);
-      console.log(`🎯 Tokens FCM que receberiam:`, fcmTokens);
-      
-      // TODO: Aqui seria feita a chamada real para Firebase Admin SDK
-      // const firebaseResult = await firebaseAdmin.messaging().sendMulticast({
-      //   tokens: fcmTokens,
-      //   notification: {
-      //     title: notification_payload.title,
-      //     body: notification_payload.body
-      //   },
-      //   data: notification_payload.data || {}
-      // });
-
-      return {
-        success: true,
-        targets: fcmTokens,
-        simulatedResult: 'success',
-        message: `Notificação simulada enviada para ${fcmTokens.length} dispositivo(s)`
-      };
-    } catch (error) {
-      console.error('❌ Erro ao simular notificação:', error);
-      return {
-        success: false,
-        message: 'Erro interno do servidor'
-      };
-    }
+async function registerToken(data) {
+  const validation = validateTokenData(data);
+  if (!validation.isValid) {
+    return { success: false, errors: validation.errors };
+  }
+  try {
+    const result = mockDb.upsert(data.fcm_token, {
+      device_id: data.device_id,
+      user_id: data.user_id,
+      notification_consent_status: data.notification_consent_status
+    });
+    return { success: true, action: result.action, record: result.record };
+  } catch (error) {
+    console.error('❌ Erro ao registrar token:', error);
+    return { success: false, errors: ['Erro interno do servidor'] };
   }
 }
 
-module.exports = new NotificationService();
+async function removeTokenByDeviceId(deviceId) {
+  try {
+    const result = mockDb.deleteByDeviceId(deviceId);
+    if (result) {
+      return { success: true, removed: true, removedDeviceId: deviceId };
+    }
+    return { success: false, message: 'Device not found' };
+  } catch (error) {
+    console.error('❌ Erro ao remover token:', error);
+    return { success: false, message: 'Erro interno do servidor' };
+  }
+}
+
+async function getTokenCount() {
+  try {
+    const count = mockDb.count();
+    return { success: true, count };
+  } catch (error) {
+    console.error('❌ Erro ao contar tokens:', error);
+    return { success: false, message: 'Erro interno do servidor' };
+  }
+}
+
+async function getAllTokens() {
+  try {
+    const tokens = mockDb.getAll();
+    console.log(`📋 Listando ${tokens.length} tokens registrados`);
+    return { success: true, tokens, count: tokens.length };
+  } catch (error) {
+    console.error('❌ Erro ao listar tokens:', error);
+    return { success: false, message: 'Erro interno do servidor' };
+  }
+}
+
+async function simulateNotification(data) {
+  const { user_id, account_id, notification_payload } = data;
+  if (!user_id) {
+    return { success: false, message: 'user_id é obrigatório' };
+  }
+  try {
+    const userTokens = mockDb.findByUserIdAndConsent(user_id, 'granted');
+    if (userTokens.length === 0) {
+      console.log(`📭 Nenhum token encontrado para user_id: ${user_id} com consentimento 'granted'`);
+      return { success: true, targets: [], simulatedResult: 'no_targets', message: 'Nenhum token encontrado com consentimento para notificações' };
+    }
+    const fcmTokens = userTokens.map(item => item.fcmToken);
+    console.log(`📤 Simulando envio de notificação para user_id: ${user_id}`);
+    console.log(`📱 Payload:`, notification_payload);
+    console.log(`🎯 Tokens FCM que receberiam:`, fcmTokens);
+    return { success: true, targets: fcmTokens, simulatedResult: 'success', message: `Notificação simulada enviada para ${fcmTokens.length} dispositivo(s)` };
+  } catch (error) {
+    console.error('❌ Erro ao simular notificação:', error);
+    return { success: false, message: 'Erro interno do servidor' };
+  }
+}
+
+module.exports = {
+  validateTokenData,
+  registerToken,
+  removeTokenByDeviceId,
+  getTokenCount,
+  getAllTokens,
+  simulateNotification
+};

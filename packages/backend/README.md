@@ -113,6 +113,30 @@ Content-Type: application/json
 
 **Resposta:**
 
+### 6. Listar Todos os Tokens Registrados
+
+```bash
+GET /api/v1/notifications/tokens
+```
+
+**Resposta:**
+
+```json
+{
+  "ok": true,
+  "tokens": [
+    {
+      "fcm_token": "token-1",
+      "device_id": "device-1",
+      "user_id": "user-a",
+      "notification_consent_status": "granted",
+      "last_updated_at": "2025-01-01T12:00:00.000Z"
+    }
+  ],
+  "count": 1
+}
+```
+
 ```json
 {
   "ok": true,
@@ -186,6 +210,7 @@ O servidor registra todas as operações no console:
 - 🗑️ Registros removidos
 - 📤 Simulações de envio
 - 🌐 Requisições HTTP
+- 📋 Listagem de tokens (GET /tokens)
 
 ## 🔮 Próximos Passos
 

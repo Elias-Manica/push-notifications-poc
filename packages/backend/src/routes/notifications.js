@@ -96,4 +96,33 @@ router.get('/tokens/count', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v1/notifications/tokens
+ * Retorna lista completa de tokens registrados
+ */
+router.get('/tokens', async (req, res) => {
+  try {
+    const result = await notificationService.getAllTokens();
+    
+    if (result.success) {
+      res.status(200).json({
+        ok: true,
+        tokens: result.tokens,
+        count: result.count
+      });
+    } else {
+      res.status(500).json({
+        ok: false,
+        message: result.message
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro no endpoint GET /tokens:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Erro interno do servidor'
+    });
+  }
+});
+
 module.exports = router;
