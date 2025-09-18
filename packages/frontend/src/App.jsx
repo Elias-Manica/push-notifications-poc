@@ -166,31 +166,6 @@ function App() {
     }
   };
 
-  const simulateNotification = async () => {
-    if (!session) return;
-
-    try {
-      setLoading(true);
-
-      await apiService.simulateNotification({
-        user_id: session.user_id,
-        account_id: session.account_id,
-        notification_payload: {
-          title: 'Teste de Notificação',
-          body: `Olá Usuário ${session.user_id}! Esta é uma notificação de teste.`,
-          data: { test: true }
-        }
-      });
-
-      showNotification('success', 'Notificação de teste enviada!');
-    } catch (error) {
-      console.error('❌ Erro ao simular notificação:', error);
-      showNotification('error', 'Erro ao enviar notificação de teste');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="container">
@@ -271,15 +246,6 @@ function App() {
             >
               {loading ? <span className="loading"></span> : ''}
               Trocar para Conta Z
-            </button>
-            
-            <button 
-              className="btn btn-success" 
-              onClick={simulateNotification}
-              disabled={loading}
-            >
-              {loading ? <span className="loading"></span> : ''}
-              Enviar Notificação de Teste
             </button>
             
             <button 

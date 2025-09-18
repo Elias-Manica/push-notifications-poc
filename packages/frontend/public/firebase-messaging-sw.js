@@ -113,38 +113,38 @@ async function clearCurrentSession() {
   }
 }
 
-// Verificar se deve exibir a notificação
-function shouldShowNotification(payload) {
+// Verificar se deve exibir a notificação (comparação normalizada)
+function shouldShowNotificationWithSession(payload, session) {
   console.log('🔍 SW: Verificando notificação:', {
-    currentSession,
+    session,
     payloadData: payload.data,
     payloadNotification: payload.notification
   });
 
-  // Se não há sessão ativa, descartar todas as notificações
-  if (!currentSession) {
+  if (!session) {
     console.log('🚫 SW: Nenhuma sessão ativa, descartando notificação');
     return false;
   }
 
-  // Verificar se há dados customizados (user_id, account_id)
   const { user_id, account_id } = payload.data || {};
-  
+
   if (!user_id || !account_id) {
     console.log('🚫 SW: Payload inválido (faltam user_id ou account_id), descartando notificação');
     return false;
   }
 
-  // Verificar correspondência com a sessão atual
-  const shouldShow = 
-    user_id === currentSession.user_id && 
-    account_id === currentSession.account_id;
+  const payloadUserId = String(user_id);
+  const payloadAccountId = String(account_id);
+  const sessionUserId = String(session.user_id);
+  const sessionAccountId = String(session.account_id);
+
+  const shouldShow = payloadUserId === sessionUserId && payloadAccountId === sessionAccountId;
 
   console.log('🔍 SW: Verificando correspondência:', {
-    payload: { user_id, account_id },
-    currentSession,
-    userMatch: user_id === currentSession.user_id,
-    accountMatch: account_id === currentSession.account_id,
+    payload: { user_id: payloadUserId, account_id: payloadAccountId },
+    session: { user_id: sessionUserId, account_id: sessionAccountId },
+    userMatch: payloadUserId === sessionUserId,
+    accountMatch: payloadAccountId === sessionAccountId,
     shouldShow
   });
 
@@ -171,48 +171,52 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('push', (event) => {
   console.log('📨 SW: Push recebido');
 
-  try {
-    const payload = event.data ? event.data.json() : {};
-    console.log('📋 SW: Payload da notificação:', payload);
+  event.waitUntil((async () => {
+    try {
+      const payload = event.data ? event.data.json() : {};
+      console.log('📋 SW: Payload da notificação:', payload);
 
-    if (shouldShowNotification(payload)) {
-      // Usar dados do Firebase ou fallback para dados customizados
-      const notificationData = payload.notification || payload.notification_payload || {};
-      
-      const notificationOptions = {
-        body: notificationData.body || 'Nova notificação',
-        icon: '/vite.svg',
-        badge: '/vite.svg',
-        tag: 'firebase-notification',
-        data: payload.data || {},
-        actions: [
-          {
-            action: 'view',
-            title: 'Ver',
-            icon: '/vite.svg'
-          },
-          {
-            action: 'dismiss',
-            title: 'Dispensar',
-            icon: '/vite.svg'
-          }
-        ]
-      };
+      // Sempre buscar sessão fresca do IndexedDB para evitar estado antigo em memória
+      const freshSession = await loadCurrentSession();
+      const sessionToUse = freshSession || currentSession;
 
-      event.waitUntil(
-        self.registration.showNotification(
+      if (shouldShowNotificationWithSession(payload, sessionToUse)) {
+        const notificationData = payload.notification || payload.notification_payload || {};
+
+        const notificationOptions = {
+          body: notificationData.body || 'Nova notificação',
+          icon: '/vite.svg',
+          badge: '/vite.svg',
+          tag: 'firebase-notification',
+          renotify: false,
+          data: payload.data || {},
+          actions: [
+            {
+              action: 'view',
+              title: 'Ver',
+              icon: '/vite.svg'
+            },
+            {
+              action: 'dismiss',
+              title: 'Dispensar',
+              icon: '/vite.svg'
+            }
+          ]
+        };
+
+        await self.registration.showNotification(
           notificationData.title || 'Push Notifications PoC',
           notificationOptions
-        )
-      );
+        );
 
-      console.log('✅ SW: Notificação exibida');
-    } else {
-      console.log('🚫 SW: Notificação descartada (não corresponde à sessão atual)');
+        console.log('✅ SW: Notificação exibida');
+      } else {
+        console.log('🚫 SW: Notificação descartada (não corresponde à sessão atual)');
+      }
+    } catch (error) {
+      console.error('❌ SW: Erro ao processar push:', error);
     }
-  } catch (error) {
-    console.error('❌ SW: Erro ao processar push:', error);
-  }
+  })());
 });
 
 // Evento de clique na notificação
