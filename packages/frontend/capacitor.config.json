@@ -1,0 +1,5 @@
+{
+  "appId": "com.pushnotifications.poc",
+  "appName": "Push Notifications POC",
+  "webDir": "dist"
+}

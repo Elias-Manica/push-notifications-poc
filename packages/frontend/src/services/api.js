@@ -1,10 +1,10 @@
 /**
  * API Service
- * 
+ *
  * Comunicação com o backend para gerenciar tokens FCM
  */
 
-const API_BASE_URL = 'http://localhost:3000/api/v1';
+import { API_BASE_URL } from '../config/api.js';
 
 class ApiService {
   async registerToken(tokenData) {
@@ -18,7 +18,7 @@ class ApiService {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao registrar token');
       }
@@ -32,17 +32,24 @@ class ApiService {
 
   async removeToken(deviceId) {
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications/tokens/${deviceId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/tokens/${deviceId}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         // Se o device não foi encontrado, não é um erro crítico
         if (response.status === 404 && result.message === 'Device not found') {
           console.log('ℹ️ Token já foi removido ou não existe');
-          return { ok: true, message: 'Token já removido', alreadyRemoved: true };
+          return {
+            ok: true,
+            message: 'Token já removido',
+            alreadyRemoved: true,
+          };
         }
         throw new Error(result.message || 'Erro ao remover token');
       }
@@ -56,9 +63,11 @@ class ApiService {
 
   async getTokenCount() {
     try {
-      const response = await fetch(`${API_BASE_URL}/notifications/tokens/count`);
+      const response = await fetch(
+        `${API_BASE_URL}/notifications/tokens/count`
+      );
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao contar tokens');
       }
@@ -74,7 +83,7 @@ class ApiService {
     try {
       const response = await fetch(`${API_BASE_URL}/notifications/tokens`);
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao listar tokens');
       }
@@ -97,7 +106,7 @@ class ApiService {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao simular notificação');
       }

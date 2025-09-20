@@ -15,7 +15,12 @@
     "preview:frontend": "cd packages/frontend && npm run preview",
     "install:all": "npm install && cd packages/backend && npm install && cd ../frontend && npm install",
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
-    "build": "npm run build:frontend"
+    "build": "npm run build:frontend",
+    "mobile:sync": "cd packages/frontend && npm run cap:sync",
+    "mobile:android": "cd packages/frontend && npm run cap:open:android",
+    "mobile:ios": "cd packages/frontend && npm run cap:open:ios",
+    "mobile:dev": "concurrently \"npm run dev:backend\" \"cd packages/frontend && npm run cap:sync && npm run cap:open:android\"",
+    "get-ip": "node scripts/get-ip.js"
   },
   "keywords": [
     "push-notifications",
