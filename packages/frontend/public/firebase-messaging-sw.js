@@ -185,23 +185,9 @@ self.addEventListener('push', (event) => {
 
         const notificationOptions = {
           body: notificationData.body || 'Nova notificação',
-          icon: '/vite.svg',
-          badge: '/vite.svg',
           tag: 'firebase-notification',
           renotify: false,
           data: payload.data || {},
-          actions: [
-            {
-              action: 'view',
-              title: 'Ver',
-              icon: '/vite.svg'
-            },
-            {
-              action: 'dismiss',
-              title: 'Dispensar',
-              icon: '/vite.svg'
-            }
-          ]
         };
 
         await self.registration.showNotification(
