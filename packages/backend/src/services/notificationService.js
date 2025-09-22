@@ -1,6 +1,6 @@
 /**
  * Serviço de Notificações
- * 
+ *
  * Funções puras para gerenciar tokens FCM e simular envios
  * TODO: Integrar com Firebase Admin SDK para envios reais
  */
@@ -20,8 +20,13 @@ function validateTokenData(data) {
     errors.push('user_id é obrigatório e deve ser uma string');
   }
   const validConsentStatuses = ['granted', 'denied', 'default'];
-  if (!data.notification_consent_status || !validConsentStatuses.includes(data.notification_consent_status)) {
-    errors.push('notification_consent_status é obrigatório e deve ser: granted, denied ou default');
+  if (
+    !data.notification_consent_status ||
+    !validConsentStatuses.includes(data.notification_consent_status)
+  ) {
+    errors.push(
+      'notification_consent_status é obrigatório e deve ser: granted, denied ou default'
+    );
   }
   return { isValid: errors.length === 0, errors };
 }
@@ -35,7 +40,7 @@ async function registerToken(data) {
     const result = mockDb.upsert(data.fcm_token, {
       device_id: data.device_id,
       user_id: data.user_id,
-      notification_consent_status: data.notification_consent_status
+      notification_consent_status: data.notification_consent_status,
     });
     return { success: true, action: result.action, record: result.record };
   } catch (error) {
@@ -86,11 +91,18 @@ async function simulateNotification(data) {
   try {
     const userTokens = mockDb.findByUserIdAndConsent(user_id, 'granted');
     if (userTokens.length === 0) {
-      console.log(`📭 Nenhum token encontrado para user_id: ${user_id} com consentimento 'granted'`);
-      return { success: true, targets: [], simulatedResult: 'no_targets', message: 'Nenhum token encontrado com consentimento para notificações' };
+      console.log(
+        `📭 Nenhum token encontrado para user_id: ${user_id} com consentimento 'granted'`
+      );
+      return {
+        success: true,
+        targets: [],
+        simulatedResult: 'no_targets',
+        message: 'Nenhum token encontrado com consentimento para notificações',
+      };
     }
-    
-    const fcmTokens = userTokens.map(item => item.fcmToken);
+
+    const fcmTokens = userTokens.map((item) => item.fcmToken);
     console.log(`📤 Enviando notificação para user_id: ${user_id}`);
     console.log(`📱 Payload:`, notification_payload);
     console.log(`🎯 Tokens FCM que receberão:`, fcmTokens);
@@ -106,23 +118,45 @@ async function simulateNotification(data) {
       data: {
         user_id,
         account_id,
-        ...notification_payload.data
-      }
+        ...notification_payload.data,
+      },
     };
-    
+
     console.log('📤 Enviando notificação com dados:', notificationData);
-    const result = await firebaseAdminService.sendToMultipleTokens(fcmTokens, notificationData);
-    
+    const result = await firebaseAdminService.sendToMultipleTokens(
+      fcmTokens,
+      notificationData
+    );
+
+    // Log detalhado dos erros do Firebase para facilitar debug
+    if (
+      result &&
+      !result.mock &&
+      result.failureCount > 0 &&
+      Array.isArray(result.responses)
+    ) {
+      const detailedErrors = result.responses
+        .map((resp, idx) => ({
+          index: idx,
+          token: fcmTokens[idx],
+          success: resp.success,
+          code: resp.error?.code,
+          message: resp.error?.message,
+        }))
+        .filter((r) => r.success === false);
+      console.error('❌ Detalhes de falhas no envio FCM:', detailedErrors);
+    }
+
     console.log('✅ Resultado do envio:', result);
-    
-    return { 
-      success: true, 
-      targets: fcmTokens, 
+
+    return {
+      success: true,
+      targets: fcmTokens,
       simulatedResult: result.mock ? 'simulated' : 'sent',
-      message: result.mock 
+      message: result.mock
         ? `Notificação simulada enviada para ${result.successCount} dispositivo(s)`
         : `Notificação enviada para ${result.successCount} dispositivo(s) (${result.failureCount} falharam)`,
-      details: result
+      details: result,
     };
   } catch (error) {
     console.error('❌ Erro ao enviar notificação:', error);
@@ -136,5 +170,5 @@ module.exports = {
   removeTokenByDeviceId,
   getTokenCount,
   getAllTokens,
-  simulateNotification
+  simulateNotification,
 };

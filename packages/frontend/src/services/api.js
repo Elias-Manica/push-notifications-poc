@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../config/api.js';
 class ApiService {
   async registerToken(tokenData) {
     try {
+      console.log('🔑 API_BASE_URL:', API_BASE_URL);
       const response = await fetch(`${API_BASE_URL}/notifications/tokens`, {
         method: 'POST',
         headers: {

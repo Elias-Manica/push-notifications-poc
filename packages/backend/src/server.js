@@ -1,6 +1,6 @@
 /**
  * Servidor Express - PoC Push Notifications
- * 
+ *
  * Backend mock para gerenciar tokens FCM e simular envios de notificações
  * TODO: Integrar com Firebase Admin SDK para funcionalidade real
  */
@@ -14,10 +14,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001', // React dev server padrão
-  credentials: true
-}));
+app.use(
+  cors({
+    // Em dev, refletir a origem da requisição (permite https://localhost do Capacitor e http://localhost:3001)
+    origin: (origin, callback) => callback(null, true),
+    credentials: true,
+  })
+);
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -35,7 +38,7 @@ app.get('/health', (req, res) => {
     ok: true,
     message: 'Push Notifications PoC Backend está funcionando!',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
   });
 });
 
@@ -55,7 +58,7 @@ app.get('/', (req, res) => {
       removeToken: 'DELETE /api/v1/notifications/tokens/:device_id',
       tokenCount: 'GET /api/v1/notifications/tokens/count',
       sendNotification: 'POST /api/v1/events/enviar',
-      firebaseStatus: 'GET /api/v1/events/status'
+      firebaseStatus: 'GET /api/v1/events/status',
     },
     examples: {
       registerToken: {
@@ -65,8 +68,8 @@ app.get('/', (req, res) => {
           fcm_token: 'token-abc-123',
           device_id: 'device-1',
           user_id: 'user-a',
-          notification_consent_status: 'granted'
-        }
+          notification_consent_status: 'granted',
+        },
       },
       sendNotification: {
         method: 'POST',
@@ -77,11 +80,11 @@ app.get('/', (req, res) => {
           notification_payload: {
             title: 'Título da notificação',
             body: 'Corpo da notificação',
-            data: { customKey: 'customValue' }
-          }
-        }
-      }
-    }
+            data: { customKey: 'customValue' },
+          },
+        },
+      },
+    },
   });
 });
 
@@ -91,7 +94,7 @@ app.use('*', (req, res) => {
     ok: false,
     message: 'Endpoint não encontrado',
     path: req.originalUrl,
-    method: req.method
+    method: req.method,
   });
 });
 
@@ -101,7 +104,7 @@ app.use((error, req, res, next) => {
   res.status(500).json({
     ok: false,
     message: 'Erro interno do servidor',
-    error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    error: process.env.NODE_ENV === 'development' ? error.message : undefined,
   });
 });
 

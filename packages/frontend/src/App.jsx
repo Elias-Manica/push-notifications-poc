@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import indexedDBService from './services/indexedDB';
 import apiService from './services/api';
-import firebaseService from './services/firebase';
+import pushService from './services/push';
 
 function App() {
   const [session, setSession] = useState(null);
@@ -16,21 +16,28 @@ function App() {
     loadInitialState();
   }, []);
 
-  // Configurar listener de mensagens FCM
+  // Inicializar push cross-plataforma e listeners
   useEffect(() => {
-    firebaseService.onMessage((payload) => {
-      setNotification({
-        type: 'success',
-        message: `Notificação recebida: ${payload.notification?.body || 'Nova mensagem'}`
-      });
-      setTimeout(() => setNotification(null), 5000);
-    });
+    (async () => {
+      try {
+        await pushService.initialize();
+        pushService.onMessage((msg) => {
+          setNotification({
+            type: 'success',
+            message: `Notificação recebida: ${msg.body}`,
+          });
+          setTimeout(() => setNotification(null), 5000);
+        });
+      } catch (e) {
+        console.error('❌ Erro inicializando push:', e);
+      }
+    })();
   }, []);
 
   const loadInitialState = async () => {
     try {
       setLoading(true);
-      
+
       // Carregar device_id ou criar novo
       let device = await indexedDBService.getDeviceId();
       if (!device) {
@@ -61,10 +68,24 @@ function App() {
 
   const notifyServiceWorker = async (type, data) => {
     try {
+      // No-op em runtime nativo (Capacitor)
+      if (
+        pushService.isNative && typeof pushService.isNative === 'function'
+          ? pushService.isNative()
+          : false
+      ) {
+        return;
+      }
       if ('serviceWorker' in navigator) {
-        // Aguardar o service worker estar pronto
-        const registration = await navigator.serviceWorker.ready;
-        
+        // Aguardar o service worker estar pronto com timeout para evitar travar
+        const swReadyWithTimeout = Promise.race([
+          navigator.serviceWorker.ready,
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('SW ready timeout')), 1500)
+          ),
+        ]);
+        const registration = await swReadyWithTimeout;
+
         if (registration.active) {
           console.log(`📤 Enviando para SW: ${type}`, data);
           registration.active.postMessage({ type, data });
@@ -81,27 +102,32 @@ function App() {
     try {
       setLoading(true);
 
-      // Obter token FCM
-      const token = await firebaseService.getFCMToken();
+      // Obter token de push (web via Firebase, mobile via Capacitor)
+      const token = await pushService.requestPermissionAndGetToken();
       setFcmToken(token);
 
+      console.log('🔑 Token de push:', token);
       // Registrar token no backend
       await apiService.registerToken({
         fcm_token: token,
         device_id: deviceId,
         user_id: userId,
-        notification_consent_status: 'granted'
+        notification_consent_status: 'granted',
       });
 
+      console.log('🔑 Token de push registrado:', token);
       // Salvar sessão
       const newSession = { user_id: userId, account_id: accountId };
       await indexedDBService.saveSession(newSession);
       setSession(newSession);
 
       // Notificar SW
-      await notifyServiceWorker('SESSION_UPDATE', newSession);
+      // await notifyServiceWorker('SESSION_UPDATE', newSession);
 
-      showNotification('success', `Logado como Usuário ${userId} (Conta ${accountId})`);
+      showNotification(
+        'success',
+        `Logado como Usuário ${userId} (Conta ${accountId})`
+      );
     } catch (error) {
       console.error('❌ Erro no login:', error);
       showNotification('error', 'Erro ao fazer login');
@@ -145,7 +171,10 @@ function App() {
           }
         } catch (error) {
           // Se falhar ao remover token, continua o logout mesmo assim
-          console.warn('⚠️ Não foi possível remover token do backend:', error.message);
+          console.warn(
+            '⚠️ Não foi possível remover token do backend:',
+            error.message
+          );
         }
       }
 
@@ -168,10 +197,10 @@ function App() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="header">
-          <h1 className="title">Push Notifications PoC</h1>
-          <div className="loading"></div>
+      <div className='container'>
+        <div className='header'>
+          <h1 className='title'>Push Notifications PoC</h1>
+          <div className='loading'></div>
           <p>Carregando...</p>
         </div>
       </div>
@@ -179,15 +208,21 @@ function App() {
   }
 
   return (
-    <div className="container">
-      <div className="header">
-        <h1 className="title">Push Notifications PoC</h1>
-        <p className="subtitle">Teste de notificações com FCM e Service Worker</p>
+    <div className='container'>
+      <div className='header'>
+        <h1 className='title'>Push Notifications PoC</h1>
+        <p className='subtitle'>
+          Teste de notificações com FCM e Service Worker
+        </p>
       </div>
 
       {/* Notificação de feedback */}
       {notification && (
-        <div className={`notification ${notification.type === 'error' ? 'error' : ''}`}>
+        <div
+          className={`notification ${
+            notification.type === 'error' ? 'error' : ''
+          }`}
+        >
           {notification.message}
         </div>
       )}
@@ -196,8 +231,11 @@ function App() {
       <div className={`status ${session ? 'logged-in' : 'logged-out'}`}>
         {session ? (
           <div>
-            <strong>✅ Logado</strong> - Usuário: {session.user_id} | Conta: {session.account_id}
-            {fcmToken && <div>🔑 Token FCM: {fcmToken.substring(0, 20)}...</div>}
+            <strong>✅ Logado</strong> - Usuário: {session.user_id} | Conta:{' '}
+            {session.account_id}
+            {fcmToken && (
+              <div>🔑 Token FCM: {fcmToken.substring(0, 20)}...</div>
+            )}
           </div>
         ) : (
           <div>
@@ -208,52 +246,56 @@ function App() {
 
       {/* Informações do dispositivo */}
       {deviceId && (
-        <div className="user-info">
+        <div className='user-info'>
           <h3>📱 Dispositivo</h3>
-          <p><strong>Device ID:</strong> {deviceId}</p>
-          <p><strong>Status:</strong> {session ? 'Conectado' : 'Desconectado'}</p>
+          <p>
+            <strong>Device ID:</strong> {deviceId}
+          </p>
+          <p>
+            <strong>Status:</strong> {session ? 'Conectado' : 'Desconectado'}
+          </p>
         </div>
       )}
 
       {/* Botões de ação */}
-      <div className="button-group">
+      <div className='button-group'>
         {!session ? (
           <>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className='btn btn-primary'
               onClick={() => login('user-a', 'account-x')}
               disabled={loading}
             >
-              {loading ? <span className="loading"></span> : ''}
+              {loading ? <span className='loading'></span> : ''}
               Login como Usuário A (Conta X)
             </button>
-            
-            <button 
-              className="btn btn-primary" 
+
+            <button
+              className='btn btn-primary'
               onClick={() => login('user-b', 'account-y')}
               disabled={loading}
             >
-              {loading ? <span className="loading"></span> : ''}
+              {loading ? <span className='loading'></span> : ''}
               Login como Usuário B (Conta Y)
             </button>
           </>
         ) : (
           <>
-            <button 
-              className="btn btn-warning" 
+            <button
+              className='btn btn-warning'
               onClick={() => changeProfile('account-z')}
               disabled={loading}
             >
-              {loading ? <span className="loading"></span> : ''}
+              {loading ? <span className='loading'></span> : ''}
               Trocar para Conta Z
             </button>
-            
-            <button 
-              className="btn btn-danger" 
+
+            <button
+              className='btn btn-danger'
               onClick={logout}
               disabled={loading}
             >
-              {loading ? <span className="loading"></span> : ''}
+              {loading ? <span className='loading'></span> : ''}
               Logout
             </button>
           </>
@@ -261,7 +303,7 @@ function App() {
       </div>
 
       {/* Instruções */}
-      <div className="user-info">
+      <div className='user-info'>
         <h3>📋 Como testar:</h3>
         <ol style={{ marginLeft: '1rem', marginTop: '0.5rem' }}>
           <li>Faça login como um usuário</li>

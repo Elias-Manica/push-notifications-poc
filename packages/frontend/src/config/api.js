@@ -16,14 +16,13 @@ const configs = {
 
   // Desenvolvimento mobile (substitua pelo seu IP local)
   mobile: {
-    // ⚠️ IMPORTANTE: Substitua pelo seu IP local
-    // Para descobrir seu IP: npm run get-ip
-    API_BASE_URL: 'http://192.168.0.108:3000/api/v1',
+    // Usando adb reverse para mapear localhost do emulador para o host
+    API_BASE_URL: 'http://localhost:3000/api/v1',
   },
 
   // Produção (quando deployar)
   production: {
-    API_BASE_URL: 'https://seu-backend.com/api/v1',
+    API_BASE_URL: 'http://localhost:3000/api/v1',
   },
 };
 
